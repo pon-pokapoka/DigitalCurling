@@ -1,5 +1,6 @@
 # --- Build target options ---
 option(DIGITALCURLING_BUILD_SIMULATOR_FCV1 "Build simulator: fcv1" ON)
+option(DIGITALCURLING_BUILD_SIMULATOR_FCV1LIGHT "Build simulator: fcv1light" ON)
 
 # --- Build settings ---
 if(DEFINED DIGITALCURLING_PLUGIN_OUTPUT_DIR_ABS)
@@ -23,6 +24,10 @@ endmacro()
 # --- Build plugins ---
 if (DIGITALCURLING_BUILD_SIMULATOR_FCV1)
     dc3_add_simulator_plugin(fcv1)
+endif()
+
+if (DIGITALCURLING_BUILD_SIMULATOR_FCV1LIGHT)
+    dc3_add_simulator_plugin(fcv1light)
 endif()
 
 # --- Check targets ---
