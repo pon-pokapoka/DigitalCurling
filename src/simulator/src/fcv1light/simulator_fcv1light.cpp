@@ -70,6 +70,8 @@ void SimulatorFCV1Light::SetStones(ISimulator::AllStones const& stones)
         }
     }
 
+    stones_dirty_ = true;
+    all_stones_stopped_dirty_ = true;
 }
 
 void SimulatorFCV1Light::Step()
