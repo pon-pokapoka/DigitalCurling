@@ -126,7 +126,7 @@ struct GameState {
     Team GetNextTeam() const {
         if (IsGameOver()) return Team::kInvalid;
 
-        auto res = GetOpponentTeam(hammer);
+        auto res = (shot % 2 == 0) ? GetOpponentTeam(hammer) : hammer;
         return res != Team::kInvalid ? res : throw std::logic_error("invalid state");
     }
 
