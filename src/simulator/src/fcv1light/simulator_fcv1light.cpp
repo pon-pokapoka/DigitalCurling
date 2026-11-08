@@ -80,7 +80,17 @@ void SimulatorFCV1Light::Step()
 
     AdaptiveStep(storage_.factory.seconds_per_frame*100);
 
-    if (!storage_.collisions.empty()){
+    // Redo the step at full resolution if a contact involves a moving stone.
+    // Stones touching at rest report a contact on every step; refining for
+    // them changed nothing and made every later step about 100 times slower.
+    auto const is_moving = [this](std::uint8_t id) {
+        auto const* body = stone_bodies_[id];
+        return body->GetLinearVelocity().LengthSquared() > std::numeric_limits<float>::epsilon()
+            || std::abs(body->GetAngularVelocity()) > std::numeric_limits<float>::epsilon();
+    };
+    bool const hit = std::any_of(storage_.collisions.begin(), storage_.collisions.end(),
+        [&](Collision const& c) { return is_moving(c.a.id) || is_moving(c.b.id); });
+    if (hit) {
         Load(pre_step_storage);
         for (auto i=0; i<100; ++i){
             AdaptiveStep(storage_.factory.seconds_per_frame);

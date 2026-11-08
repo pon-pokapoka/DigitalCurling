@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <memory>
+#include <vector>
 #include <string>
 #include <nlohmann/json.hpp>
 #include "common.hpp"
@@ -138,4 +140,66 @@ TEST(SimulatorFCV1Light, FactoryFromJson)
     dcs::SimulatorFCV1LightFactory v_fcv1light;
     EXPECT_NO_THROW(v_fcv1light = j_fcv1light.get<dcs::SimulatorFCV1LightFactory>());
     EXPECT_EQ(v_fcv1light.seconds_per_frame, 0.25f);
+}
+
+namespace {
+
+// Slide stone 0 along +y until everything stops, with stones 1 and 2 at rest at
+// x = 3, `gap` apart, well away from its path. Returns where stone 0 stops.
+dc::Vector2 SlideNextToRestingPair(float gap, std::vector<dcs::ISimulator::Collision>* collisions = nullptr)
+{
+    dcs::SimulatorFCV1LightFactory factory;
+    auto simulator = factory.CreateSimulator();
+    dcs::ISimulator::AllStones stones;
+    stones[0] = dcs::ISimulator::StoneState(dc::Vector2(0.f, 0.f), 0.f, dc::Vector2(0.f, 2.5f), 1.f);
+    stones[1] = dcs::ISimulator::StoneState(dc::Vector2(3.f, 20.f), 0.f, dc::Vector2(0.f, 0.f), 0.f);
+    stones[2] = dcs::ISimulator::StoneState(dc::Vector2(3.f + gap, 20.f), 0.f, dc::Vector2(0.f, 0.f), 0.f);
+    simulator->SetStones(stones);
+    while (!simulator->AreAllStonesStopped()) {
+        simulator->Step();
+        if (collisions) {
+            auto const& c = simulator->GetCollisions();
+            collisions->insert(collisions->end(), c.begin(), c.end());
+        }
+    }
+    return simulator->GetStones()[0]->position;
+}
+
+} // namespace
+
+TEST(SimulatorFCV1Light, RestingContactDoesNotChangeOtherStones)
+{
+    // Touching stones at rest must not change how a stone elsewhere moves:
+    // they used to force fine steps for the whole shot.
+    float const touching = 2.f * dc::Stone::kRadius - 0.0005f;
+    auto const apart = SlideNextToRestingPair(1.f);
+    auto const near = SlideNextToRestingPair(touching);
+    EXPECT_FLOAT_EQ(near.x, apart.x);
+    EXPECT_FLOAT_EQ(near.y, apart.y);
+}
+
+TEST(SimulatorFCV1Light, RestingContactIsStillReported)
+{
+    std::vector<dcs::ISimulator::Collision> collisions;
+    SlideNextToRestingPair(2.f * dc::Stone::kRadius - 0.0005f, &collisions);
+    ASSERT_FALSE(collisions.empty());
+    for (auto const& c : collisions) {
+        EXPECT_EQ(std::min(c.a.id, c.b.id), 1);
+        EXPECT_EQ(std::max(c.a.id, c.b.id), 2);
+    }
+}
+
+TEST(SimulatorFCV1Light, HitStillMovesTheOtherStone)
+{
+    dcs::SimulatorFCV1LightFactory factory;
+    auto simulator = factory.CreateSimulator();
+    dcs::ISimulator::AllStones stones;
+    stones[0] = dcs::ISimulator::StoneState(dc::Vector2(0.f, 0.f), 0.f, dc::Vector2(0.f, 2.f), 0.f);
+    stones[1] = dcs::ISimulator::StoneState(dc::Vector2(0.f, 1.f), 0.f, dc::Vector2(0.f, 0.f), 0.f);
+    simulator->SetStones(stones);
+    while (!simulator->AreAllStonesStopped()) simulator->Step();
+
+    auto const& result = simulator->GetStones();
+    EXPECT_GT(result[1]->position.y, 1.5f);
+    EXPECT_LT(result[0]->position.y, result[1]->position.y);
 }
