@@ -2,6 +2,7 @@
 option(DIGITALCURLING_BUILD_SIMULATOR_FCV1 "Build simulator: fcv1" ON)
 option(DIGITALCURLING_BUILD_SIMULATOR_FCV1LIGHT "Build simulator: fcv1light" ON)
 option(DIGITALCURLING_BUILD_SIMULATOR_FCV1TABLE "Build simulator: fcv1table" ON)
+option(DIGITALCURLING_BUILD_SIMULATOR_FCV1EVENT "Build simulator: fcv1event" ON)
 
 # --- Build settings ---
 if(DEFINED DIGITALCURLING_PLUGIN_OUTPUT_DIR_ABS)
@@ -33,6 +34,10 @@ endif()
 
 if (DIGITALCURLING_BUILD_SIMULATOR_FCV1TABLE)
     dc3_add_simulator_plugin(fcv1table)
+endif()
+
+if (DIGITALCURLING_BUILD_SIMULATOR_FCV1EVENT)
+    dc3_add_simulator_plugin(fcv1event)
 endif()
 
 # --- Check targets ---
